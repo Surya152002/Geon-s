@@ -17,7 +17,7 @@
                     pdf.getPage(1).then(function (page) {
                         page.getTextContent().then(function (textContent) {
                             var extractedText = extractTable(textContent.items).join(' ');
-                            document.getElementById('extracted-text').textContent = extractedText;
+                            document.getElementById('extracted-text').value = extractedText;
                         });
                     });
                 });
@@ -59,7 +59,7 @@
                         pdf.getPage(1).then(function (page) {
                             page.getTextContent().then(function (textContent) {
                                 var extractedText = extractTable(textContent.items).join(' ');
-                                document.getElementById('extracted-text').textContent = extractedText;
+                                document.getElementById('extracted-text').value = extractedText;
                             });
                         });
                     });
@@ -83,7 +83,7 @@
                             page.getTextContent().then(function (textContent) {
                                 var tableData = extractTable(textContent.items);
                                 var tableText = tableData.join('\n');
-                                document.getElementById('extracted-table').textContent = tableText;
+                                document.getElementById('extracted-table').value = tableText;
                             });
                         });
                     });
@@ -99,8 +99,8 @@
     <button onclick="extractTextFromPDF()">Extract Text</button>
     <button onclick="extractTableFromPDF()">Extract Table</button>
     <br><br>
-    <div id="extracted-text"></div>
-    <br>
-    <pre id="extracted-table"></pre>
+    <textarea id="extracted-text" rows="10" cols="50" readonly></textarea>
+    <br><br>
+    <textarea id="extracted-table" rows="10" cols="50" readonly></textarea>
 </body>
 </html>
