@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Table Extractor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+        function handleFileSelect(event) {
+            var file = event.target.files[0];
+
+            var fileReader = new FileReader();
+            fileReader.onload = function (event) {
+                var typedarray = new Uint8Array(event.target.result);
+                PDFJS.getDocument(typedarray).then(function (pdf) {
+                    pdf.getPage(1).then(function (page) {
+                        page.getTextContent().then(function (textContent) {
+                            var tableData = extractTable(textContent.items);
+                            var tableText = tableData.join('\n');
+                            document.getElementById('table-textbox').value = tableText;
+                        });
+                    });
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+
+        function extractTable(items) {
+            var tableData = [];
+            var tableStartIndex = -1;
+            var tableEndIndex = -1;
+            var currentRow = '';
+
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+
+                if (item.str.includes('TableStart')) {
+                    tableStartIndex = i;
+                } else if (item.str.includes('TableEnd')) {
+                    tableEndIndex = i;
+                    break;
+                }
+            }
+
+            if (tableStartIndex !== -1 && tableEndIndex !== -1) {
+                for (var j = tableStartIndex + 1; j < tableEndIndex; j++) {
+                    var rowItem = items[j];
+
+                    if (rowItem.str === 'TD') {
+                        currentRow += ' ';
+                    } else if (rowItem.str === 'LTPage') {
+                        if (currentRow.trim() !== '') {
+                            tableData.push(currentRow.trim());
+                        }
+                        currentRow = '';
+                    } else {
+                        currentRow += rowItem.str;
+                    }
+                }
+
+                if (currentRow.trim() !== '') {
+                    tableData.push(currentRow.trim());
+                }
+            }
+
+            return tableData;
+        }
+    </script>
+</head>
+<body>
+    <input type="file" accept=".pdf" id="pdf-file" onchange="handleFileSelect(event)">
+    <textarea id="table-textbox" rows="10" cols="50" readonly></textarea>
+</body>
+</html>
