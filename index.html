@@ -6,8 +6,8 @@
     <script>
         function handleFileSelect(event) {
             var file = event.target.files[0];
-
             var fileReader = new FileReader();
+
             fileReader.onload = function (event) {
                 var typedarray = new Uint8Array(event.target.result);
                 PDFJS.getDocument(typedarray).then(function (pdf) {
@@ -63,10 +63,36 @@
 
             return tableData;
         }
+
+        function extractTableFromPDF() {
+            var fileInput = document.getElementById('pdf-file');
+            var file = fileInput.files[0];
+
+            if (file) {
+                var fileReader = new FileReader();
+
+                fileReader.onload = function (event) {
+                    var typedarray = new Uint8Array(event.target.result);
+                    PDFJS.getDocument(typedarray).then(function (pdf) {
+                        pdf.getPage(1).then(function (page) {
+                            page.getTextContent().then(function (textContent) {
+                                var tableData = extractTable(textContent.items);
+                                var tableText = tableData.join('\n');
+                                document.getElementById('table-textbox').value = tableText;
+                            });
+                        });
+                    });
+                };
+
+                fileReader.readAsArrayBuffer(file);
+            }
+        }
     </script>
 </head>
 <body>
-    <input type="file" accept=".pdf" id="pdf-file" onchange="handleFileSelect(event)">
+    <input type="file" accept=".pdf" id="pdf-file">
+    <button onclick="extractTableFromPDF()">Extract Table</button>
+    <br><br>
     <textarea id="table-textbox" rows="10" cols="50" readonly></textarea>
 </body>
 </html>
