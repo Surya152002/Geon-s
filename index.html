@@ -3,7 +3,9 @@
 <head>
     <title>PDF Table Extractor with OCR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tabula-py/2.3.0/tabula.min.js"></script>
     <script>
         function handleFileSelect(event) {
             var file = event.target.files[0];
@@ -14,9 +16,8 @@
                 PDFJS.getDocument(typedarray).then(function (pdf) {
                     pdf.getPage(1).then(function (page) {
                         page.getTextContent().then(function (textContent) {
-                            var tableData = extractTable(textContent.items);
-                            var tableText = tableData.join('\n');
-                            document.getElementById('table-textbox').value = tableText;
+                            var extractedText = extractTable(textContent.items).join(' ');
+                            document.getElementById('extracted-text').textContent = extractedText;
                         });
                     });
                 });
@@ -25,44 +26,47 @@
         }
 
         function extractTable(items) {
-            var tableData = [];
-            var tableStartIndex = -1;
-            var tableEndIndex = -1;
-            var currentRow = '';
+            // Extract table structure using OCR tools or libraries specifically designed for table extraction
+            // This example demonstrates using Tabula-Py for table extraction
 
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
+            // Convert items to plain text
+            var textItems = items.map(function (item) {
+                return item.str;
+            });
 
-                if (item.str.includes('TableStart')) {
-                    tableStartIndex = i;
-                } else if (item.str.includes('TableEnd')) {
-                    tableEndIndex = i;
-                    break;
-                }
+            // Perform table extraction using Tabula-Py
+            var response = tabula.extractTablesSync(textItems.join(' '));
+            if (response.length > 0) {
+                var tableData = response[0].map(function (row) {
+                    return row.join('\t');
+                });
+                return tableData;
             }
 
-            if (tableStartIndex !== -1 && tableEndIndex !== -1) {
-                for (var j = tableStartIndex + 1; j < tableEndIndex; j++) {
-                    var rowItem = items[j];
+            return [];
+        }
 
-                    if (rowItem.str === 'TD') {
-                        currentRow += ' ';
-                    } else if (rowItem.str === 'LTPage') {
-                        if (currentRow.trim() !== '') {
-                            tableData.push(currentRow.trim());
-                        }
-                        currentRow = '';
-                    } else {
-                        currentRow += rowItem.str;
-                    }
-                }
+        function extractTextFromPDF() {
+            var fileInput = document.getElementById('pdf-file');
+            var file = fileInput.files[0];
 
-                if (currentRow.trim() !== '') {
-                    tableData.push(currentRow.trim());
-                }
+            if (file) {
+                var fileReader = new FileReader();
+
+                fileReader.onload = function (event) {
+                    var typedarray = new Uint8Array(event.target.result);
+                    PDFJS.getDocument(typedarray).then(function (pdf) {
+                        pdf.getPage(1).then(function (page) {
+                            page.getTextContent().then(function (textContent) {
+                                var extractedText = extractTable(textContent.items).join(' ');
+                                document.getElementById('extracted-text').textContent = extractedText;
+                            });
+                        });
+                    });
+                };
+
+                fileReader.readAsArrayBuffer(file);
             }
-
-            return tableData;
         }
 
         function extractTableFromPDF() {
@@ -77,15 +81,9 @@
                     PDFJS.getDocument(typedarray).then(function (pdf) {
                         pdf.getPage(1).then(function (page) {
                             page.getTextContent().then(function (textContent) {
-                                var extractedText = extractTable(textContent.items).join(' ');
-                                Tesseract.recognize(extractedText)
-                                    .then(function (result) {
-                                        var tableText = result.text;
-                                        document.getElementById('table-textbox').value = tableText;
-                                    })
-                                    .catch(function (error) {
-                                        console.error('OCR Error:', error);
-                                    });
+                                var tableData = extractTable(textContent.items);
+                                var tableText = tableData.join('\n');
+                                document.getElementById('extracted-table').textContent = tableText;
                             });
                         });
                     });
@@ -98,8 +96,11 @@
 </head>
 <body>
     <input type="file" accept=".pdf" id="pdf-file">
+    <button onclick="extractTextFromPDF()">Extract Text</button>
     <button onclick="extractTableFromPDF()">Extract Table</button>
     <br><br>
-    <textarea id="table-textbox" rows="10" cols="50" readonly></textarea>
+    <div id="extracted-text"></div>
+    <br>
+    <pre id="extracted-table"></pre>
 </body>
 </html>
