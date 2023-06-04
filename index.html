@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PDF Table Extractor</title>
+    <title>PDF Table Extractor with OCR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
     <script>
         function handleFileSelect(event) {
             var file = event.target.files[0];
@@ -76,9 +77,15 @@
                     PDFJS.getDocument(typedarray).then(function (pdf) {
                         pdf.getPage(1).then(function (page) {
                             page.getTextContent().then(function (textContent) {
-                                var tableData = extractTable(textContent.items);
-                                var tableText = tableData.join('\n');
-                                document.getElementById('table-textbox').value = tableText;
+                                var extractedText = extractTable(textContent.items).join(' ');
+                                Tesseract.recognize(extractedText)
+                                    .then(function (result) {
+                                        var tableText = result.text;
+                                        document.getElementById('table-textbox').value = tableText;
+                                    })
+                                    .catch(function (error) {
+                                        console.error('OCR Error:', error);
+                                    });
                             });
                         });
                     });
